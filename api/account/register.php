@@ -11,9 +11,10 @@
 				$name = $requestData->body->name;
 				$password = hash("sha1", $requestData->body->password);
 				$email = $requestData->body->email;
+				$birthdate = $requestData->body->birthdate;
 				$gender = $requestData->body->gender;
-				$userInsertResult = $link->query("INSERT INTO users(username, name, password, email, gender) 
-												VALUES('$username', '$name', '$password', '$email', '$gender')");
+				$userInsertResult = $link->query("INSERT INTO users(username, name, password, email, birthdate, gender) 
+												VALUES('$username', '$name', '$password', '$email', '$birthdate', '$gender')");
 				if (!$userInsertResult) {
 					echo "too bad";
 				}
