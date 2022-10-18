@@ -11,13 +11,13 @@
 	$url = rtrim($url, '/');
 	$urlList = explode('/', $url);
 
-	$router = $urlList[2];
+	$router = $urlList[1];
 	$requestData = getData(getMethod());
 	$method = getMethod();
 
 
-	if (file_exists(realpath(dirname(__FILE__)). '/api' . '/' . $urlList[1] . '/'. $router . '.php')) {
-		include_once 'api' . '/'. $urlList[1] . '/'. $router . '.php';
+	if (file_exists(realpath(dirname(__FILE__)). '/api/' . $router . '.php')) {
+		include_once 'api/' . $router . '.php';
 		route($method, $urlList, $requestData);
 	}
 	else {
