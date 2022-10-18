@@ -7,7 +7,7 @@
 
 	header("Content-type: application/json");
 
-	$url = isset($_GET['q']) ? $_GET['q'] : '';
+	$url = $_GET['q'] ?? '';
 	$url = rtrim($url, '/');
 	$urlList = explode('/', $url);
 
