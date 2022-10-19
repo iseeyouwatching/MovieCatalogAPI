@@ -27,6 +27,32 @@
 					else {
 						echo "user exist";
 					}
+					break;
+				case 'login':
+					$username = $requestData->body->username;
+					$password = hash("sha1", $requestData->body->password);
+					$user = $link->query("SELECT user_id FROM users WHERE username='$username' AND password='$password'")->fetch_assoc();
+
+					if ($user) {
+						$token = bin2hex(random_bytes(32));
+						$userID = $user['user_id'];
+						$tokenInsertResult = $link->query("INSERT INTO tokens(value, user_id) VALUES('$token', '$userID')");
+
+						if (!$tokenInsertResult) {
+							echo "bad";
+						}
+						else {
+							echo json_encode(['token' => $token]);
+						}
+
+					}
+					else {
+						echo "400: input data incorrect";
+					}
+
+					break;
+				default:
+					break;
 			}
 		}
 		else {
