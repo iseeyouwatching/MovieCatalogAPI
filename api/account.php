@@ -72,6 +72,32 @@
 					echo "404";
 				}
 				break;
+			case "PUT":
+				if ($urlList[2] == "profile") {
+					$token = substr(getallheaders()['Authorization'], 7);
+					$userFromToken = $link->query("SELECT user_id FROM tokens WHERE value='$token'")->fetch_assoc();
+					if ($userFromToken) {
+						$userID = $userFromToken['user_id'];
+						$user = $link->query("SELECT username, email, avatarLink, name, birthDate, gender FROM users WHERE user_id='$userID'")->fetch_assoc();
+						$username = $requestData->body->username;
+						$email = $requestData->body->email;
+						$avatarLink = $requestData->body->avatarLink;
+						$name = $requestData->body->name;
+						$birthdate = $requestData->body->birthDate;
+						$gender = $requestData->body->gender;
+						$userUpdateResult = $link->query("UPDATE users SET username='$username', email='$email', avatarLink='$avatarLink', name='$name', birthdate='$birthdate', gender='$gender' WHERE user_id='$userID'");
+						if (!$userUpdateResult) {
+							echo "bad";
+						}
+					}
+					else {
+						echo "400: input data incorrect";
+					}
+				}
+				else {
+					echo "404";
+				}
+				break;
 			default:
 				echo "404";
 				break;
