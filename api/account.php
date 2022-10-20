@@ -49,7 +49,18 @@
 					else {
 						echo "400: input data incorrect";
 					}
+					break;
+					break;
+				case 'logout':
+					$token = substr(getallheaders()['Authorization'], 7);
+					$tokenDeleteResult = $link->query("DELETE FROM tokens WHERE value='$token'");
 
+					if ($tokenDeleteResult) {
+						echo "200: success";
+					}
+					else {
+						echo "bad";
+					}
 					break;
 				default:
 					break;
