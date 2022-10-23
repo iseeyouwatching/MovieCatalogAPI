@@ -51,7 +51,7 @@
 							'avatar' => $user_info['avatarLink']
 						);
 						$movieInfo['reviews'][] = array(
-							'id' => $review['movie_id'],
+							'id' => $review['review_id'],
 							'rating' => intval($review['rating']),
 							'reviewText' => $review['review_text'],
 							'isAnonymous' => filter_var($review['is_anonymous'], FILTER_VALIDATE_BOOLEAN),
