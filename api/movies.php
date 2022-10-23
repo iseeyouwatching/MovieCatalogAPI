@@ -20,20 +20,29 @@
 				$result['pageInfo'] = $pageInfo;
 				foreach ($infoAboutMovies as $row) {
 					$movie_id = $row['movie_id'];
-					$reviews = $link->query("SELECT movie_id, rating FROM reviews WHERE movie_id='$movie_id'");
+					$reviews = $link->query("SELECT review_id, movie_id, rating FROM reviews WHERE movie_id='$movie_id'");
 					$movieInfo = array(
 						'id' => $row['movie_id'],
 						'name' => $row['name'],
 						'poster' => $row['poster'],
-						'year' => $row['year'],
+						'year' => intval($row['year']),
 						'country' => $row['year'],
 						'genres' => [],
 						'reviews' => []
 					);
+					$genreFromMovieId = $link->query("SELECT genre_id FROM movie_genre WHERE movie_id='$movie_id'");
+					foreach ($genreFromMovieId as $row) {
+						$genreID = $row['genre_id'];
+						$genres = $link->query("SELECT genre_id, name FROM genres WHERE genre_id='$genreID'")->fetch_assoc();
+						$movieInfo['genres'][] = array(
+							'id' => $genres['genre_id'],
+							'name' => $genres['name']
+						);
+					}
 					foreach ($reviews as $review) {
 						$movieInfo['reviews'][] = [
-							'id' => $review['movie_id'],
-							'rating' => $review['rating']
+							'id' => $review['review_id'],
+							'rating' => intval($review['rating'])
 						];
 					}
 					$result['movies'][] = $movieInfo;
