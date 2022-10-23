@@ -16,8 +16,8 @@
 							$email = $requestData->body->email;
 							$birthdate = $requestData->body->birthdate;
 							$gender = $requestData->body->gender;
-							$userInsertResult = $link->query("INSERT INTO users(username, name, password, email, birthdate, gender) 
-															VALUES('$username', '$name', '$password', '$email', '$birthdate', '$gender')");
+							$userInsertResult = $link->query("INSERT INTO users(user_id, username, name, password, email, birthdate, gender) 
+															VALUES(UUID(),'$username', '$name', '$password', '$email', '$birthdate', '$gender')");
 							if (!$userInsertResult) {
 								echo "too bad";
 							}
@@ -87,8 +87,7 @@
 					$token = substr(getallheaders()['Authorization'], 7);
 					$userFromToken = $link->query("SELECT user_id FROM tokens WHERE value='$token'")->fetch_assoc();
 					if ($userFromToken) {
-						$userID = $userFromToken['user_id'];
-						$user = $link->query("SELECT username, email, avatarLink, name, birthDate, gender FROM users WHERE user_id='$userID'")->fetch_assoc();
+						$userID = $userFromToken['user_id'];;
 						$username = $requestData->body->username;
 						$email = $requestData->body->email;
 						$avatarLink = $requestData->body->avatarLink;
