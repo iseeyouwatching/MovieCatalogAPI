@@ -6,8 +6,8 @@
 		global $link;
 		if ($method == "GET") {
 			if ($urlList[2] != "details") {
-				$page_number = $urlList[2];
-				$infoAboutMovies = $link->query("SELECT * FROM movies WHERE page_number='$page_number'");
+				$pageNumber = $urlList[2];
+				$infoAboutMovies = $link->query("SELECT * FROM movies WHERE page_number='$pageNumber'");
 				$pageInfo = array(
 					'pageSize' => 6,
 					'pageCount' => 5,
@@ -19,19 +19,19 @@
 				);
 				$result['pageInfo'] = $pageInfo;
 				foreach ($infoAboutMovies as $row) {
-					$movie_id = $row['movie_id'];
-					$reviews = $link->query("SELECT review_id, movie_id, rating FROM reviews WHERE movie_id='$movie_id'");
+					$movieId = $row['movie_id'];
+					$reviews = $link->query("SELECT review_id, movie_id, rating FROM reviews WHERE movie_id='$movieId'");
 					$movieInfo = array(
 						'id' => $row['movie_id'],
 						'name' => $row['name'],
 						'poster' => $row['poster'],
 						'year' => intval($row['year']),
-						'country' => $row['year'],
+						'country' => $row['country'],
 						'genres' => [],
 						'reviews' => []
 					);
-					$genreFromMovieId = $link->query("SELECT genre_id FROM movie_genre WHERE movie_id='$movie_id'");
-					foreach ($genreFromMovieId as $row) {
+					$genreIdFromMovieId = $link->query("SELECT genre_id FROM movie_genre WHERE movie_id='$movieId'");
+					foreach ($genreIdFromMovieId as $row) {
 						$genreID = $row['genre_id'];
 						$genres = $link->query("SELECT genre_id, name FROM genres WHERE genre_id='$genreID'")->fetch_assoc();
 						$movieInfo['genres'][] = array(
@@ -47,16 +47,15 @@
 					}
 					$result['movies'][] = $movieInfo;
 				};
-
 				echo json_encode($result);
 			}
 			else {
-				$movie_id = $urlList[3];
-				$infoAboutMovies = $link->query("SELECT * FROM movies WHERE movie_id='$movie_id'");
-				$reviews = $link->query("SELECT * FROM reviews WHERE movie_id='$movie_id'");
-				$genreFromMovieId = $link->query("SELECT genre_id FROM movie_genre WHERE movie_id='$movie_id'");
+				$movieId = $urlList[3];
+				$infoAboutMovies = $link->query("SELECT * FROM movies WHERE movie_id='$movieId'");
+				$reviews = $link->query("SELECT * FROM reviews WHERE movie_id='$movieId'");
+				$genreIdFromMovieId = $link->query("SELECT genre_id FROM movie_genre WHERE movie_id='$movieId'");
 				$allGenres = array();
-				foreach ($genreFromMovieId as $row) {
+				foreach ($genreIdFromMovieId as $row) {
 					$genreID = $row['genre_id'];
 					$genres = $link->query("SELECT genre_id, name FROM genres WHERE genre_id='$genreID'")->fetch_assoc();
 					$allGenres[] = array(
@@ -71,7 +70,7 @@
 						'name' => $row['name'],
 						'poster' => $row['poster'],
 						'year' => intval($row['year']),
-						'country' => $row['year'],
+						'country' => $row['country'],
 						'genres' => [],
 						'reviews' => [],
 						'time' => intval($row['time']),
