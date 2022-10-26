@@ -22,7 +22,17 @@
 								echo "too bad";
 							}
 							else {
-								echo "success";
+								$newUser = $link->query("SELECT user_id FROM users WHERE username='$username'")->fetch_assoc();
+								$userID = $newUser['user_id'];
+								$token = bin2hex(random_bytes(32));
+								$tokenInsertResult = $link->query("INSERT INTO tokens(value, user_id) VALUES('$token', '$userID')");
+
+								if (!$tokenInsertResult) {
+									echo "bad";
+								}
+								else {
+									echo json_encode(['token' => $token]);
+								}
 							}
 						}
 						else {
