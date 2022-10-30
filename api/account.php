@@ -88,7 +88,7 @@
 							$user = $link->query("SELECT * FROM users WHERE user_id='$userID'")->fetch_assoc();
 							$result = array(
 								'id' => $user['user_id'],
-								'nickName'=> $user['nickname'],
+								'nickName'=> $user['username'],
 								'email' => $user['email'],
 								'avatarLink'=> $user['avatarLink'],
 								'name' => $user['name'],
@@ -117,13 +117,12 @@
 						$user = $link->query("SELECT user_id FROM users WHERE username='$usernameFromToken'")->fetch_assoc();
 						if ($user) {
 							$userID = $user['user_id'];
-							$nickname = $requestData->body->nickName;
 							$email = $requestData->body->email;
 							$avatarLink = $requestData->body->avatarLink;
 							$name = $requestData->body->name;
 							$birthdate = $requestData->body->birthDate;
 							$gender = $requestData->body->gender;
-							$userUpdateResult = $link->query("UPDATE users SET nickname='$nickname', email='$email', avatarLink='$avatarLink', name='$name', birthdate='$birthdate', gender='$gender' WHERE user_id='$userID'");
+							$userUpdateResult = $link->query("UPDATE users SET email='$email', avatarLink='$avatarLink', name='$name', birthdate='$birthdate', gender='$gender' WHERE user_id='$userID'");
 							if (!$userUpdateResult) {
 								echo "400: bad request";
 							}
