@@ -41,8 +41,11 @@
 					case 'login':
 						$username = $requestData->body->username;
 						$password = hash("sha1", $requestData->body->password);
+						if (is_null($username) && is_null($requestData->body->password)) {
+							setHTTPStatus('500');
+							return;
+						}
 						$user = $link->query("SELECT email FROM users WHERE username='$username' AND password='$password'")->fetch_assoc();
-
 						if ($user) {
 							$payload = [
 								'unique_name' => $username,
@@ -55,7 +58,7 @@
 							echo json_encode(['token' => $token]);
 						}
 						else {
-							echo "400: input data incorrect";
+							setHTTPStatus('400', 'Login failed');
 						}
 						break;
 					case 'logout':
