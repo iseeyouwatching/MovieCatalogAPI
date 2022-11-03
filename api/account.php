@@ -120,10 +120,11 @@
 						$tokenInsertResult = $link->query("INSERT INTO tokens(token_id, value, user_id) VALUES(UUID(), '$token','$userID')");
 
 						if ($tokenInsertResult) {
-							echo "200: success";
-						}
-						else {
-							echo "bad";
+							$messageResult = array(
+								'token' => $token,
+								'message' => 'Logged Out'
+							);
+							setHTTPStatus('200', $messageResult);
 						}
 						break;
 					default:
