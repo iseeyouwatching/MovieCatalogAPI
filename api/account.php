@@ -2,6 +2,7 @@
 
 	require_once "database_connection.php";
 	require_once "jwt.php";
+	require_once "helpers/validation.php";
 
 	function route($method, $urlList, $requestData) {
 		global $link;
@@ -9,33 +10,83 @@
 			case "POST":
 				switch ($urlList[2]) {
 					case 'register':
+						$isValidated = true;
+						$validationErrors = [];
 						$username = $requestData->body->userName;
-						$user = $link->query("SELECT user_id FROM users WHERE username='$username'")->fetch_assoc();
-						if (!$user) {
-							$name = $requestData->body->name;
-							$password = hash("sha1", $requestData->body->password);
-							$email = $requestData->body->email;
-							$birthdate = $requestData->body->birthDate;
-							$gender = $requestData->body->gender;
-							$userInsertResult = $link->query("INSERT INTO users(user_id, nickname, username, name, password, email, birthdate, gender) 
-															VALUES(UUID(),'$username', '$username', '$name', '$password', '$email', '$birthdate', '$gender')");
-							if (!$userInsertResult) {
-								echo "too bad";
+						if (!validateStringNotLess($username, 5) && !is_null($username) && $username != "") {
+							$isValidated = false;
+							$validationErrors[] = ["Login" => "Login must be at least 5 characters"];
+						}
+						if (!validateStringDoesnotContainsSpecialSymbols($username) && !is_null($username) && $username == "") {
+							$isValidated = false;
+							$validationErrors[] = ["Login" => "Login '" . $username . "' is invalid, can only contains letters or digits"];
+						}
+						if ($username == "") {
+							$isValidated = false;
+							$validationErrors[] = ["Login" => "The Login field is required"];
+						}
+						$name = $requestData->body->name;
+						if ($name == "") {
+							$isValidated = false;
+							$validationErrors[] = ["Name" => "The Name field is required"];
+						}
+						if (!validateStringNotLess($requestData->body->password, 6) && !is_null($requestData->body->password) && $requestData->body->password != "") {
+							$isValidated = false;
+							$validationErrors[] = ["Password" => "Password must be at least 6 characters"];
+						}
+						if ($requestData->body->password == "") {
+							$isValidated = false;
+							$validationErrors[] = ["Password" => "The Password field is required"];
+						}
+						$password = hash("sha1", $requestData->body->password);
+						$email = $requestData->body->email;
+						if (!filter_var($email, FILTER_VALIDATE_EMAIL) && !is_null($email) && $email != "") {
+							$isValidated = false;
+							$validationErrors[] = ["Email" => "Invalid Email address"];
+						}
+						if ($email == "") {
+							$isValidated = false;
+							$validationErrors[] = ["Email" => "The Email field is required"];
+						}
+						$birthdate = $requestData->body->birthDate;
+						$gender = $requestData->body->gender;
+						if (!$isValidated) {
+							$messageResult = array(
+								'message' => 'User Registration Failed',
+								'errors' => []
+							);
+							$messageResult['errors'] = $validationErrors;
+							setHTTPStatus('400', $messageResult);
+							return;
+						}
+						$userInsertResult = $link->query("INSERT INTO users(user_id,  username, name, password, email, birthdate, gender) 
+															VALUES(UUID(), '$username', '$name', '$password', '$email', '$birthdate', '$gender')");
+						if (!$userInsertResult) {
+							$messageResult = array(
+								'message' => 'User Registration Failed',
+								'error' => []
+							);
+							if ($link->error == "Duplicate entry '" . $username . "' for key 'users.username'") {
+								$messageResult['error'] = "Login '" . $username . "' is already taken";
+								setHTTPStatus('409', $messageResult);
+								return;
 							}
-							else {
-								$payload = [
-									'unique_name' => $username,
-									'email' => $email,
-								];
-
-								$secret = bin2hex(random_bytes(32));;
-								$token = generateToken($payload, $secret);
-
-								echo json_encode(['token' => $token]);
+							if ($link->error == "Duplicate entry '" . $email . "' for key 'users.email'") {
+								$messageResult['error'] = "Email '" . $email . "' is already taken";
+								setHTTPStatus('409', $messageResult);
+								return;
 							}
 						}
 						else {
-							echo "user exist";
+							$payload = [
+								'unique_name' => $username,
+								'email' => $email,
+							];
+
+							$secret = bin2hex(random_bytes(32));;
+							$token = generateToken($payload, $secret);
+
+							echo json_encode(['token' => $token]);
 						}
 						break;
 					case 'login':
