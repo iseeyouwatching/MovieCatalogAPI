@@ -4,6 +4,7 @@
 
 	require_once "database_connection.php";
 	require_once "get_functions.php";
+	include_once "helpers/headers.php";
 
 	header("Content-type: application/json");
 
