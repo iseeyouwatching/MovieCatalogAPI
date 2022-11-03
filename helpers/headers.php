@@ -15,7 +15,11 @@
 				break;
 		}
 		header($status);
-		if (!is_null($message)) {
+		if (!is_null($message) && !is_array($message)) {
 			echo json_encode(['message' => $message]);
 		}
+		else if (!empty($message)) {
+			echo json_encode($message);
+		}
+
 	}
