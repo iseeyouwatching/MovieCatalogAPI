@@ -77,35 +77,29 @@
 				}
 				break;
 			case "GET":
-				if ($urlList[2] == "profile") {
+				if ($urlList[2] == "profile" && count($urlList) == 3) {
 					$token = substr(getallheaders()['Authorization'], 7);
 					$isLogoutToken = $link->query("SELECT user_id FROM tokens WHERE value LIKE '$token'")->fetch_assoc();
 					if (!isExpired($token) && $isLogoutToken == null) {
 						$usernameFromToken = getPayload($token)['unique_name'];
-						$user = $link->query("SELECT user_id FROM users WHERE username='$usernameFromToken'")->fetch_assoc();
-						if ($user) {
-							$userID = $user['user_id'];
-							$user = $link->query("SELECT * FROM users WHERE user_id='$userID'")->fetch_assoc();
-							$result = array(
-								'id' => $user['user_id'],
-								'nickName'=> $user['username'],
-								'email' => $user['email'],
-								'avatarLink'=> $user['avatarLink'],
-								'name' => $user['name'],
-								'birthDate' => $user['birthdate'],
-								'gender' => intval($user['gender'])
-							);
-							echo json_encode($result);
-						} else {
-							echo "400: input data incorrect";
-						}
+						$user = $link->query("SELECT * FROM users WHERE username='$usernameFromToken'")->fetch_assoc();
+						$result = array(
+							'id' => $user['user_id'],
+							'nickName'=> $user['username'],
+							'email' => $user['email'],
+							'avatarLink'=> $user['avatarLink'],
+							'name' => $user['name'],
+							'birthDate' => $user['birthdate'],
+							'gender' => intval($user['gender'])
+						);
+						echo json_encode($result);
 					}
 					else {
-						echo "401: unauthorized";
+						setHTTPStatus('401', 'Token not specified or not valid');
 					}
 				}
 				else {
-					echo "404";
+					setHTTPStatus('404', 'Missing resource is requested');
 				}
 				break;
 			case "PUT":

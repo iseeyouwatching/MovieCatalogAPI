@@ -17,12 +17,12 @@
 	$method = getMethod();
 
 
-	if (file_exists(realpath(dirname(__FILE__)). '/api/' . $router . '.php')) {
+	if (file_exists(realpath(dirname(__FILE__)). '/' .$urlList[0] . '/' . $router . '.php')) {
 		include_once 'api/' . $router . '.php';
 		route($method, $urlList, $requestData);
 	}
 	else {
-		echo "NOPE 404";
+		setHTTPStatus('404', "There is no routing as '$urlList[0]/$router'");
 	}
 
 
