@@ -132,66 +132,79 @@
 				}
 				break;
 			case "GET":
-				if ($urlList[2] == "profile") {
+				if ($urlList[2] == "profile" && count($urlList) == 3) {
 					$token = substr(getallheaders()['Authorization'], 7);
 					$isLogoutToken = $link->query("SELECT user_id FROM tokens WHERE value LIKE '$token'")->fetch_assoc();
 					if (!isExpired($token) && $isLogoutToken == null) {
 						$usernameFromToken = getPayload($token)['unique_name'];
-						$user = $link->query("SELECT user_id FROM users WHERE username='$usernameFromToken'")->fetch_assoc();
-						if ($user) {
-							$userID = $user['user_id'];
-							$user = $link->query("SELECT * FROM users WHERE user_id='$userID'")->fetch_assoc();
-							$result = array(
-								'id' => $user['user_id'],
-								'nickName'=> $user['username'],
-								'email' => $user['email'],
-								'avatarLink'=> $user['avatarLink'],
-								'name' => $user['name'],
-								'birthDate' => $user['birthdate'],
-								'gender' => intval($user['gender'])
-							);
-							echo json_encode($result);
-						} else {
-							echo "400: input data incorrect";
-						}
+						$user = $link->query("SELECT * FROM users WHERE username='$usernameFromToken'")->fetch_assoc();
+						$result = array(
+							'id' => $user['user_id'],
+							'nickName'=> $user['username'],
+							'email' => $user['email'],
+							'avatarLink'=> $user['avatarLink'],
+							'name' => $user['name'],
+							'birthDate' => $user['birthdate'],
+							'gender' => intval($user['gender'])
+						);
+						echo json_encode($result);
 					}
 					else {
-						echo "401: unauthorized";
+						setHTTPStatus('401', 'Token not specified or not valid');
 					}
 				}
 				else {
-					echo "404";
+					setHTTPStatus('404', 'Missing resource is requested');
 				}
 				break;
 			case "PUT":
-				if ($urlList[2] == "profile") {
+				if ($urlList[2] == "profile"  && count($urlList) == 3) {
 					$token = substr(getallheaders()['Authorization'], 7);
 					$isLogoutToken = $link->query("SELECT user_id FROM tokens WHERE value LIKE '$token'")->fetch_assoc();
 					if (!isExpired($token) && $isLogoutToken == null) {
+						$isValidated = true;
+						$validationErrors = [];
 						$usernameFromToken = getPayload($token)['unique_name'];
 						$user = $link->query("SELECT user_id FROM users WHERE username='$usernameFromToken'")->fetch_assoc();
-						if ($user) {
-							$userID = $user['user_id'];
-							$email = $requestData->body->email;
-							$avatarLink = $requestData->body->avatarLink;
-							$name = $requestData->body->name;
-							$birthdate = $requestData->body->birthDate;
-							$gender = $requestData->body->gender;
-							$userUpdateResult = $link->query("UPDATE users SET email='$email', avatarLink='$avatarLink', name='$name', birthdate='$birthdate', gender='$gender' WHERE user_id='$userID'");
-							if (!$userUpdateResult) {
-								echo "400: bad request";
-							}
+						$userID = $user['user_id'];
+						$email = $requestData->body->email;
+						if ($email == "") {
+							$isValidated = false;
+							$validationErrors[] = ["Email" => "The Email field is required"];
 						}
-						else {
-							echo "400: input data incorrect";
+						if (!filter_var($email, FILTER_VALIDATE_EMAIL) && !is_null($email) && $email != "") {
+							$isValidated = false;
+							$validationErrors[] = ["Email" => "Invalid Email address"];
 						}
+						$avatarLink = $requestData->body->avatarLink;
+						$name = $requestData->body->name;
+						if ($name == "") {
+							$isValidated = false;
+							$validationErrors[] = ["Name" => "The Name field is required"];
+						}
+						$birthdate = $requestData->body->birthDate;
+						$gender = $requestData->body->gender;
+						if ($gender != 0 && $gender != 1) {
+							$isValidated = false;
+							$validationErrors[] = ["Gender" => "We have only two genders"];
+						}
+						if (!$isValidated) {
+							$messageResult = array(
+								'message' => 'User Registration Failed',
+								'errors' => []
+							);
+							$messageResult['errors'] = $validationErrors;
+							setHTTPStatus('400', $messageResult);
+							return;
+						}
+						$userUpdateResult = $link->query("UPDATE users SET email='$email', avatarLink='$avatarLink', name='$name', birthdate='$birthdate', gender='$gender' WHERE user_id='$userID'");
 					}
 					else {
-						echo "401: unauthorized";
+						setHTTPStatus('401', 'Token not specified or not valid');
 					}
 				}
 				else {
-					echo "404";
+					setHTTPStatus('404', 'Missing resource is requested');
 				}
 				break;
 			default:
