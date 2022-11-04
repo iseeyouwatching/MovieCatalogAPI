@@ -6,18 +6,29 @@
 		global $link;
 		if ($method == "GET") {
 			if ($urlList[2] != "details") {
-				$pageNumber = $urlList[2];
-				$infoAboutMovies = $link->query("SELECT * FROM movies WHERE page_number='$pageNumber'");
 				$pageInfo = array(
 					'pageSize' => 6,
-					'pageCount' => 5,
-					'currentPage' => intval($urlList[2])
 				);
+				$pageNumber = $urlList[2];
+				if ($pageNumber <= 0) {
+					setHTTPStatus('404', "Page '$pageNumber' does not exist");
+					return;
+				}
+				$moviesCount = $link->query("SELECT COUNT(*) AS totalNumberOfFilms FROM movies")->fetch_assoc();
+				$pageInfo['pageCount'] = ceil($moviesCount['totalNumberOfFilms'] / $pageInfo['pageSize']);
+				if ($pageNumber > $pageInfo['pageCount']) {
+					setHTTPStatus('404', "Page '$pageNumber' does not exist");
+					return;
+				}
+				$pageInfo['currentPage'] = intval($urlList[2]);
 				$result = array(
 					'pageInfo' => [],
 					'movies' => []
 				);
 				$result['pageInfo'] = $pageInfo;
+				$start = $pageInfo['pageSize']*($pageNumber - 1);
+				$end = $pageInfo['pageSize']*$pageNumber;
+				$infoAboutMovies = $link->query("SELECT movie_id, name, poster, year, country FROM movies LIMIT $start, $end");
 				foreach ($infoAboutMovies as $row) {
 					$movieId = $row['movie_id'];
 					$reviews = $link->query("SELECT review_id, movie_id, rating FROM reviews WHERE movie_id='$movieId'");
