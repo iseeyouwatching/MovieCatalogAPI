@@ -53,27 +53,26 @@
 					}
 				}
 				else {
-					echo "401: unauthorized";
+					setHTTPStatus('401', 'Token not specified or not valid');
 				}
 				break;
 			case "POST":
-				$token = substr(getallheaders()['Authorization'], 7);
-				$isLogoutToken = $link->query("SELECT user_id FROM tokens WHERE value LIKE '$token'")->fetch_assoc();
-				if (!isExpired($token) && $isLogoutToken == null) {
-					$usernameFromToken = getPayload($token)['unique_name'];
-					$user = $link->query("SELECT user_id FROM users WHERE username='$usernameFromToken'")->fetch_assoc();
-					$userID = $user['user_id'];
-					$movieID = $urlList[2];
-					$insertMovie = $link->query("INSERT INTO favourite_movies(user_id, movie_id) VALUES('$userID', '$movieID')");
-					if (!$insertMovie) {
-						echo "already added";
+				if (count($urlList) == 4) {
+					$token = substr(getallheaders()['Authorization'], 7);
+					$isLogoutToken = $link->query("SELECT user_id FROM tokens WHERE value LIKE '$token'")->fetch_assoc();
+					if (!isExpired($token) && $isLogoutToken == null) {
+						$usernameFromToken = getPayload($token)['unique_name'];
+						$user = $link->query("SELECT user_id FROM users WHERE username='$usernameFromToken'")->fetch_assoc();
+						$userID = $user['user_id'];
+						$movieID = $urlList[2];
+						$insertMovie = $link->query("INSERT INTO favourite_movies(user_id, movie_id) VALUES('$userID', '$movieID')");
+						if (!$insertMovie) {
+							setHTTPStatus('409', "The film with this '$movieID' identifier is already in the list of favorites at the user with this '$userID' identifier");
+						}
 					}
 					else {
-						echo "200: success";
+						setHTTPStatus('401', 'Token not specified or not valid');
 					}
-				}
-				else {
-					echo "401: unauthorized";
 				}
 				break;
 			case "DELETE":
@@ -90,15 +89,15 @@
 						echo "200: success";
 					}
 					else {
-						echo "Not-existing user favorite movie";
+						setHTTPStatus('409', "The film with this '$movieID' identifier does not exist in the list of favorites at the user with this '$userID' identifier");
 					}
 				}
 				else {
-					echo "401: unauthorized";
+					setHTTPStatus('401', 'Token not specified or not valid');
 				}
 				break;
 			default:
-				echo "404";
+				setHTTPStatus('404', 'Missing resource is requested');
 				break;
 		}
 	}
