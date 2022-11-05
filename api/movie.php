@@ -14,30 +14,50 @@
 					$user = $link->query("SELECT user_id FROM users WHERE username='$usernameFromToken'")->fetch_assoc();
 					$userID = $user['user_id'];
 					$review = $link->query("SELECT review_id FROM reviews WHERE user_id='$userID'")->fetch_assoc();
+					$movieID = $urlList[2];
 					if (!$review) {
+						$isValidated = true;
+						$validationErrors = [];
 						$reviewText = $requestData->body->reviewText;
 						$rating = $requestData->body->rating;
-						$isAnonymous = $requestData->body->rating;
-						$movieID = $urlList[2];
+						if ($rating < 0 || $rating > 10 || !is_int($rating)) {
+							$validationErrors[] = ["Rating" => 'The field Rating must be between 0 and 10'];
+							$isValidated = false;
+						}
+						$isAnonymous = $requestData->body->isAnonymous;
+						if (!is_bool($isAnonymous)) {
+							$validationErrors[] = ["IsAnonymous" => 'The field IsAnonymous can only be true or false'];
+							$isValidated = false;
+						}
+						if (!$isValidated) {
+							$messageResult = array(
+								'message' => 'Adding review is failed',
+								'errors' => []
+							);
+							$messageResult['errors'] = $validationErrors;
+							setHTTPStatus('400', $messageResult);
+							return;
+						}
 						$now = DateTime::createFromFormat('U.u', number_format(microtime(true), 6, '.', ''));
 						$nowFormatted = substr($now->format('Y-m-d\TH:i:s.u'), 0, -3) . 'Z';
+						$isAnonymous = (int)$isAnonymous;
 						$reviewInsertResult = $link->query("INSERT INTO reviews(review_id, user_id, movie_id, review_text, rating, is_anonymous, create_datetime) 
 														VALUES(UUID(), '$userID', '$movieID', '$reviewText', '$rating', '$isAnonymous', '$nowFormatted')");
-						if (!$reviewInsertResult) {
-							echo "too bad";
-						} else {
-							echo "success";
-						}
 					}
 					else {
-						echo json_encode(['message' => "User has already had review for this movie"]);
+						$reviewID = $review['review_id'];
+						setHTTPStatus('409', "User with this '$userID' identifier already had review with this identifier '$reviewID' for this movie");
 					}
 				}
 				else {
-					echo "401: unauthorized";
+					setHTTPStatus('401', 'Token not specified or not valid');
 				}
 				break;
 			case "PUT":
+				if (count($urlList) != 6) {
+					setHTTPStatus('404', 'Missing resource is requested');
+					return;
+				}
 				$token = substr(getallheaders()['Authorization'], 7);
 				$isLogoutToken = $link->query("SELECT user_id FROM tokens WHERE value LIKE '$token'")->fetch_assoc();
 				if (!isExpired($token) && $isLogoutToken == null) {
@@ -46,22 +66,53 @@
 					$userID = $user['user_id'];
 					$movieID = $urlList[2];
 					$reviewID = $urlList[4];
+					$reviewCheck = $link->query("SELECT review_id FROM reviews WHERE review_id='$reviewID' AND user_id='$userID'")->fetch_assoc();
+					$movieCheck = $link->query("SELECT review_id FROM reviews WHERE user_id='$userID' AND movie_id='$movieID'")->fetch_assoc();
+					if (!$movieCheck) {
+						setHTTPStatus('404','The user has no review on this movie');
+						return;
+					}
+					if (!$reviewCheck) {
+						setHTTPStatus('403','User cannot change foreign review');
+						return;
+					}
+					$isValidated = true;
+					$validationErrors = [];
 					$reviewText = $requestData->body->reviewText;
 					$rating = $requestData->body->rating;
-					$isAnonymous = $requestData->body->rating;
+					if ($rating < 0 || $rating > 10 || !is_int($rating)) {
+						$validationErrors[] = ["Rating" => 'The field Rating must be between 0 and 10'];
+						$isValidated = false;
+					}
+					$isAnonymous = $requestData->body->isAnonymous;
+					if (!is_bool($isAnonymous)) {
+						$validationErrors[] = ["IsAnonymous" => 'The field IsAnonymous can only be true or false'];
+						$isValidated = false;
+					}
+					if (!$isValidated) {
+						$messageResult = array(
+							'message' => 'Adding review is failed',
+							'errors' => []
+						);
+						$messageResult['errors'] = $validationErrors;
+						setHTTPStatus('400', $messageResult);
+						return;
+					}
 					$now = DateTime::createFromFormat('U.u', number_format(microtime(true), 6, '.', ''));
 					$nowFormatted = substr($now->format('Y-m-d\TH:i:s.u'), 0, -3) . 'Z';
+					$isAnonymous = (int)$isAnonymous;
 					$reviewUpdateResult = $link->query("UPDATE reviews SET review_text='$reviewText', rating='$rating', is_anonymous='$isAnonymous', create_datetime='$nowFormatted' 
                									WHERE user_id='$userID' AND movie_id='$movieID' AND review_id='$reviewID'");
-					if (!$reviewUpdateResult) {
-						echo "bad";
-					}
 				}
 				else {
-					echo "401: unauthorized";
+					setHTTPStatus('401', 'Token not specified or not valid');
 				}
 				break;
 			case "DELETE":
+				if (count($urlList) != 6) {
+					setHTTPStatus('404', 'Missing resource is requested');
+					return;
+				}
 				$token = substr(getallheaders()['Authorization'], 7);
 				$isLogoutToken = $link->query("SELECT user_id FROM tokens WHERE value LIKE '$token'")->fetch_assoc();
 				if (!isExpired($token) && $isLogoutToken == null) {
@@ -70,20 +121,26 @@
 					$userID = $user['user_id'];
 					$movieID = $urlList[2];
 					$reviewID = $urlList[4];
-					$checkIsExist = $link->query("SELECT user_id, movie_id FROM reviews WHERE user_id='$userID' AND movie_id='$movieID'")->fetch_assoc();
-					if ($checkIsExist) {
+					$reviewCheck = $link->query("SELECT review_id FROM reviews WHERE review_id='$reviewID' AND user_id='$userID'")->fetch_assoc();
+					$movieCheck = $link->query("SELECT review_id FROM reviews WHERE user_id='$userID' AND movie_id='$movieID'")->fetch_assoc();
+					if (!$movieCheck) {
+						setHTTPStatus('404','The user has no review on this movie');
+						return;
+					}
+					if ($reviewCheck) {
 						$reviewDeleteResult = $link->query("DELETE FROM reviews WHERE user_id='$userID' AND movie_id='$movieID' AND review_id='$reviewID'");
 					}
 					else {
-						echo "404 not found";
+						setHTTPStatus('403','User cannot delete foreign review');
+						return;
 					}
 				}
 				else {
-					echo "401: unauthorized";
+					setHTTPStatus('401', 'Token not specified or not valid');
 				}
 				break;
 			default:
-				echo "404";
+				setHTTPStatus('405', "Method '$method' not allowed");
 				break;
 		}
 	}
