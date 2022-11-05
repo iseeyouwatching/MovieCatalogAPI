@@ -53,7 +53,7 @@
 					}
 				}
 				else {
-					echo "401: unauthorized";
+					setHTTPStatus('401', 'Token not specified or not valid');
 				}
 				break;
 			case "POST":
@@ -98,7 +98,7 @@
 				}
 				break;
 			default:
-				echo "404";
+				setHTTPStatus('405', "Method '$method' not allowed");
 				break;
 		}
 	}
