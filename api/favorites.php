@@ -87,18 +87,17 @@
 					$checkIsExist = $link->query("SELECT user_id, movie_id FROM favourite_movies WHERE user_id='$userID' AND movie_id='$movieID'")->fetch_assoc();
 					if ($checkIsExist) {
 						$deleteMovieFromFavourites = $link->query("DELETE FROM favourite_movies WHERE movie_id='$movieID' AND user_id='$userID'");
-						echo "200: success";
 					}
 					else {
-						echo "Not-existing user favorite movie";
+						setHTTPStatus('409', "The film with this '$movieID' identifier does not exist in the list of favorites at the user with this '$userID' identifier");
 					}
 				}
 				else {
-					echo "401: unauthorized";
+					setHTTPStatus('401', 'Token not specified or not valid');
 				}
 				break;
 			default:
-				echo "404";
+				setHTTPStatus('404', 'Missing resource is requested');
 				break;
 		}
 	}
