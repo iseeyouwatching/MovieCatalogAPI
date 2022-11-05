@@ -60,9 +60,14 @@
 				};
 				echo json_encode($result);
 			}
-			else {
+			else if (count($urlList) == 4) {
 				$movieId = $urlList[3];
-				$infoAboutMovies = $link->query("SELECT * FROM movies WHERE movie_id='$movieId'");
+				$checkIsMovieExist = $link->query("SELECT * FROM movies WHERE movie_id='$movieId'")->fetch_assoc();
+				if (!$checkIsMovieExist) {
+					setHTTPStatus('404', "There is no movie with this '$movieId' identifier");
+					return;
+				}
+				$infoAboutMovie = $link->query("SELECT * FROM movies WHERE movie_id='$movieId'");
 				$reviews = $link->query("SELECT * FROM reviews WHERE movie_id='$movieId'");
 				$genreIdFromMovieId = $link->query("SELECT genre_id FROM movie_genre WHERE movie_id='$movieId'");
 				$allGenres = array();
@@ -75,7 +80,7 @@
 					);
 				}
 				$movieInfo = [];
-				foreach ($infoAboutMovies as $row) {
+				foreach ($infoAboutMovie as $row) {
 					$movieInfo = array(
 						'id' => $row['movie_id'],
 						'name' => $row['name'],
@@ -116,8 +121,11 @@
 				$result = $movieInfo;
 				echo json_encode($result);
 			}
+			else {
+				setHTTPStatus('404', 'Missing resource is requested');
+			}
 		}
 		else {
-			echo "bad request";
+			setHTTPStatus('405', "Method '$method' not allowed");
 		}
 	}
