@@ -14,27 +14,43 @@
 					$user = $link->query("SELECT user_id FROM users WHERE username='$usernameFromToken'")->fetch_assoc();
 					$userID = $user['user_id'];
 					$review = $link->query("SELECT review_id FROM reviews WHERE user_id='$userID'")->fetch_assoc();
+					$movieID = $urlList[2];
 					if (!$review) {
+						$isValidated = true;
+						$validationErrors = [];
 						$reviewText = $requestData->body->reviewText;
 						$rating = $requestData->body->rating;
-						$isAnonymous = $requestData->body->rating;
-						$movieID = $urlList[2];
+						if ($rating < 0 || $rating > 10 || !is_int($rating)) {
+							$validationErrors[] = ["Rating" => 'The field Rating must be between 0 and 10'];
+							$isValidated = false;
+						}
+						$isAnonymous = $requestData->body->isAnonymous;
+						if (!is_bool($isAnonymous)) {
+							$validationErrors[] = ["IsAnonymous" => 'The field IsAnonymous can only be true or false'];
+							$isValidated = false;
+						}
+						if (!$isValidated) {
+							$messageResult = array(
+								'message' => 'Adding review is failed',
+								'errors' => []
+							);
+							$messageResult['errors'] = $validationErrors;
+							setHTTPStatus('400', $messageResult);
+							return;
+						}
 						$now = DateTime::createFromFormat('U.u', number_format(microtime(true), 6, '.', ''));
 						$nowFormatted = substr($now->format('Y-m-d\TH:i:s.u'), 0, -3) . 'Z';
+						$isAnonymous = (int)$isAnonymous;
 						$reviewInsertResult = $link->query("INSERT INTO reviews(review_id, user_id, movie_id, review_text, rating, is_anonymous, create_datetime) 
 														VALUES(UUID(), '$userID', '$movieID', '$reviewText', '$rating', '$isAnonymous', '$nowFormatted')");
-						if (!$reviewInsertResult) {
-							echo "too bad";
-						} else {
-							echo "success";
-						}
 					}
 					else {
-						echo json_encode(['message' => "User has already had review for this movie"]);
+						$reviewID = $review['review_id'];
+						setHTTPStatus('409', "User with this '$userID' identifier already had review with this identifier '$reviewID' for this movie");
 					}
 				}
 				else {
-					echo "401: unauthorized";
+					setHTTPStatus('401', 'Token not specified or not valid');
 				}
 				break;
 			case "PUT":
