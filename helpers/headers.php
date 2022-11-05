@@ -13,6 +13,9 @@
 			case "404":
 				$status = "HTTP/1.0 404 Not Found";
 				break;
+			case "405":
+				$status = "HTTP/1.0 405 Method Not Allowed";
+				break;
 		}
 		header($status);
 		if (!is_null($message)) {
