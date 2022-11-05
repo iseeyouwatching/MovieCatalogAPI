@@ -19,6 +19,9 @@
 			case "404":
 				$status = "HTTP/1.0 404 Not Found";
 				break;
+			case "405":
+				$status = "HTTP/1.0 405 Method Not Allowed";
+				break;
 			case "409":
 				$status = "HTTP/1.0 409 Conflict";
 				break;

@@ -109,6 +109,10 @@
 				}
 				break;
 			case "DELETE":
+				if (count($urlList) != 6) {
+					setHTTPStatus('404', 'Missing resource is requested');
+					return;
+				}
 				$token = substr(getallheaders()['Authorization'], 7);
 				$isLogoutToken = $link->query("SELECT user_id FROM tokens WHERE value LIKE '$token'")->fetch_assoc();
 				if (!isExpired($token) && $isLogoutToken == null) {
@@ -117,20 +121,26 @@
 					$userID = $user['user_id'];
 					$movieID = $urlList[2];
 					$reviewID = $urlList[4];
-					$checkIsExist = $link->query("SELECT user_id, movie_id FROM reviews WHERE user_id='$userID' AND movie_id='$movieID'")->fetch_assoc();
-					if ($checkIsExist) {
+					$reviewCheck = $link->query("SELECT review_id FROM reviews WHERE review_id='$reviewID' AND user_id='$userID'")->fetch_assoc();
+					$movieCheck = $link->query("SELECT review_id FROM reviews WHERE user_id='$userID' AND movie_id='$movieID'")->fetch_assoc();
+					if (!$movieCheck) {
+						setHTTPStatus('404','The user has no review on this movie');
+						return;
+					}
+					if ($reviewCheck) {
 						$reviewDeleteResult = $link->query("DELETE FROM reviews WHERE user_id='$userID' AND movie_id='$movieID' AND review_id='$reviewID'");
 					}
 					else {
-						echo "404 not found";
+						setHTTPStatus('403','User cannot delete foreign review');
+						return;
 					}
 				}
 				else {
-					echo "401: unauthorized";
+					setHTTPStatus('401', 'Token not specified or not valid');
 				}
 				break;
 			default:
-				echo "404";
+				setHTTPStatus('405', "Method '$method' not allowed");
 				break;
 		}
 	}
