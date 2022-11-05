@@ -13,6 +13,9 @@
 			case "404":
 				$status = "HTTP/1.0 404 Not Found";
 				break;
+			case "409":
+				$status = "HTTP/1.0 409 Conflict";
+				break;
 		}
 		header($status);
 		if (!is_null($message)) {
