@@ -89,15 +89,15 @@
 						echo "200: success";
 					}
 					else {
-						echo "Not-existing user favorite movie";
+						setHTTPStatus('409', "The film with this '$movieID' identifier does not exist in the list of favorites at the user with this '$userID' identifier");
 					}
 				}
 				else {
-					echo "401: unauthorized";
+					setHTTPStatus('401', 'Token not specified or not valid');
 				}
 				break;
 			default:
-				setHTTPStatus('405', "Method '$method' not allowed");
+				setHTTPStatus('404', 'Missing resource is requested');
 				break;
 		}
 	}
