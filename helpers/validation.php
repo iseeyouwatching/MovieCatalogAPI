@@ -9,7 +9,7 @@
 		}
 	}
 
-	function validateStringDoesnotContainsSpecialSymbols($str = ''): bool {
+	function validateStringDoesNotContainsSpecialSymbols($str = ''): bool {
 		$sourceUsername = $str;
 		if (preg_match('/[\'^£$%&*()}{@#~?><>,|=_+¬-]/', $str) || strpos($str, '/') || strpos($str, ' ') || $sourceUsername !== stripslashes($str) || preg_match('/[А-Яа-яЁё]/u', $str)) {
 			return false;

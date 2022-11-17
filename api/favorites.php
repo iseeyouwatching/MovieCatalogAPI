@@ -1,55 +1,26 @@
 <?php
 
-	require_once "database_connection.php";
-	require_once "jwt.php";
+	require_once "helpers/jwt.php";
+	require_once "helpers/favs/info_about_favs_movies.php";
+	require_once "helpers/favs/is_exist_movie.php";
 
-	function route($method, $urlList, $requestData) {
+	function route($method, $urlList): void {
 		global $link;
 		switch ($method) {
 			case "GET":
+				if (count($urlList) != 2) {
+					setHTTPStatus('404', 'Missing resource is requested');
+					return;
+				}
 				$token = substr(getallheaders()['Authorization'], 7);
 				$isLogoutToken = $link->query("SELECT user_id FROM tokens WHERE value LIKE '$token'")->fetch_assoc();
-				if (!isExpired($token) && $isLogoutToken == null) {
-					$usernameFromToken = getPayload($token)['unique_name'];
-					$user = $link->query("SELECT user_id FROM users WHERE username='$usernameFromToken'")->fetch_assoc();
-					$userID = $user['user_id'];
-					$movieIdFromFavouriteMovies = $link->query("SELECT movie_id FROM favourite_movies WHERE user_id='$userID'");
-					$result = [];
-					foreach ($movieIdFromFavouriteMovies as $row) {
-						$movieID = $row['movie_id'];
-						$movies = $link->query("SELECT * FROM movies WHERE movie_id='$movieID'")->fetch_assoc();
-						$movieInfo = array(
-							'id' => $movies['movie_id'],
-							'name' => $movies['name'],
-							'poster' => $movies['poster'],
-							'year' => intval($movies['year']),
-							'country' => $movies['country'],
-							'genres' => [],
-							'reviews' => []
-						);
-						$reviews = $link->query("SELECT review_id, rating FROM reviews WHERE movie_id='$movieID'");
-						$genreIdFromMovieId = $link->query("SELECT genre_id FROM movie_genre WHERE movie_id='$movieID'");
-						foreach ($genreIdFromMovieId as $row) {
-							$genreID = $row['genre_id'];
-							$genres = $link->query("SELECT genre_id, name FROM genres WHERE genre_id='$genreID'")->fetch_assoc();
-							$movieInfo['genres'][] = array(
-								'id' => $genres['genre_id'],
-								'name' => $genres['name']
-							);
-						}
-						foreach ($reviews as $review) {
-							$movieInfo['reviews'][] = [
-								'id' => $review['review_id'],
-								'rating' => intval($review['rating'])
-							];
-						}
-						$result['movies'][] = $movieInfo;
-					};
+				if (isValid($token) && !isExpired($token) && $isLogoutToken == null) {
+					$result = informationAboutFavsMovies($token);
 					if (empty($result)) {
-						echo json_encode(['movies' => $result]);
+						echo json_encode(['movies' => informationAboutFavsMovies($token)]);
 					}
 					else {
-						echo json_encode($result);
+						echo json_encode(informationAboutFavsMovies($token));
 					}
 				}
 				else {
@@ -57,36 +28,49 @@
 				}
 				break;
 			case "POST":
-				if (count($urlList) == 4) {
-					$token = substr(getallheaders()['Authorization'], 7);
-					$isLogoutToken = $link->query("SELECT user_id FROM tokens WHERE value LIKE '$token'")->fetch_assoc();
-					if (!isExpired($token) && $isLogoutToken == null) {
-						$usernameFromToken = getPayload($token)['unique_name'];
-						$user = $link->query("SELECT user_id FROM users WHERE username='$usernameFromToken'")->fetch_assoc();
-						$userID = $user['user_id'];
-						$movieID = $urlList[2];
-						$insertMovie = $link->query("INSERT INTO favourite_movies(user_id, movie_id) VALUES('$userID', '$movieID')");
-						if (!$insertMovie) {
-							setHTTPStatus('409', "The film with this '$movieID' identifier is already in the list of favorites at the user with this '$userID' identifier");
-						}
-					}
-					else {
-						setHTTPStatus('401', 'Token not specified or not valid');
-					}
+				if (count($urlList) != 4) {
+					setHTTPStatus('404', 'Missing resource is requested');
+					return;
 				}
-				break;
-			case "DELETE":
 				$token = substr(getallheaders()['Authorization'], 7);
 				$isLogoutToken = $link->query("SELECT user_id FROM tokens WHERE value LIKE '$token'")->fetch_assoc();
-				if (!isExpired($token) && $isLogoutToken == null) {
+				if (isValid($token) && !isExpired($token) && $isLogoutToken == null) {
 					$usernameFromToken = getPayload($token)['unique_name'];
 					$user = $link->query("SELECT user_id FROM users WHERE username='$usernameFromToken'")->fetch_assoc();
 					$userID = $user['user_id'];
 					$movieID = $urlList[2];
-					$checkIsExist = $link->query("SELECT user_id, movie_id FROM favourite_movies WHERE user_id='$userID' AND movie_id='$movieID'")->fetch_assoc();
-					if ($checkIsExist) {
+					if (!checkIfExistMovie($movieID)) {
+						setHTTPStatus('404', "Film with this '$movieID' identifier does not exist");
+						return;
+					}
+					$insertMovie = $link->query("INSERT INTO favourite_movies(user_id, movie_id) VALUES('$userID', '$movieID')");
+					if (!$insertMovie) {
+						setHTTPStatus('409', "The film with this '$movieID' identifier is already in the list of favorites at the user with this '$userID' identifier");
+					}
+				}
+				else {
+					setHTTPStatus('401', 'Token not specified or not valid');
+				}
+				break;
+			case "DELETE":
+				if (count($urlList) != 4) {
+					setHTTPStatus('404', 'Missing resource is requested');
+					return;
+				}
+				$token = substr(getallheaders()['Authorization'], 7);
+				$isLogoutToken = $link->query("SELECT user_id FROM tokens WHERE value LIKE '$token'")->fetch_assoc();
+				if (isValid($token) && !isExpired($token) && $isLogoutToken == null) {
+					$usernameFromToken = getPayload($token)['unique_name'];
+					$user = $link->query("SELECT user_id FROM users WHERE username='$usernameFromToken'")->fetch_assoc();
+					$userID = $user['user_id'];
+					$movieID = $urlList[2];
+					if (!checkIfExistMovie($movieID)) {
+						setHTTPStatus('404', "Film with this '$movieID' identifier does not exist");
+						return;
+					}
+					$checkIsExistInListOfFavs = $link->query("SELECT user_id, movie_id FROM favourite_movies WHERE user_id='$userID' AND movie_id='$movieID'")->fetch_assoc();
+					if ($checkIsExistInListOfFavs) {
 						$deleteMovieFromFavourites = $link->query("DELETE FROM favourite_movies WHERE movie_id='$movieID' AND user_id='$userID'");
-						echo "200: success";
 					}
 					else {
 						setHTTPStatus('409', "The film with this '$movieID' identifier does not exist in the list of favorites at the user with this '$userID' identifier");
